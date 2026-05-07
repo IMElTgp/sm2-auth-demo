@@ -1,4 +1,8 @@
-# task1-1
+# sm2 auth demo
+
+An assignment of Network and System Security, UCAS.
+
+**All the .go and .sh files in this repository are vibe coded.**
 
 Current implementation status: `M1` to `M6` completed.
 
