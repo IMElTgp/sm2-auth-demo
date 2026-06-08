@@ -56,3 +56,5 @@ go test -v ./tests -count=1
   - `POST /api/register`
   - `POST /api/auth/challenge`
   - `POST /api/auth/verify`
+
+
