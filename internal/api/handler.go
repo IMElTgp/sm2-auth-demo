@@ -19,6 +19,7 @@ import (
 )
 
 func NewMux() *http.ServeMux {
+	// 默认使用本地 SQLite 用户存储和内存会话存储，方便直接启动服务。
 	defaultServer := NewServer(
 		store.NewSQLiteUserStore(""),
 		store.NewMemorySessionStore(),
@@ -166,6 +167,7 @@ func (s *Server) challengeHandler(w http.ResponseWriter, r *http.Request) {
 	user, err := s.userStore.GetUser(r.Context(), req.Username)
 	if err != nil {
 		if errors.Is(err, store.ErrUserNotFound) {
+			// 未知用户名也返回结构一致的 challenge，避免通过响应差异枚举账号。
 			resp, fakeErr := fakeChallengeResponse()
 			if fakeErr != nil {
 				writeJSON(w, http.StatusInternalServerError, BaseResponse{OK: false, Error: "internal error"})
@@ -265,6 +267,8 @@ func (s *Server) verifyHandler(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, BaseResponse{OK: false, Error: "internal error"})
 		return
 	}
+	// 服务端自行重建 token，并与客户端提交的原始字节逐字节比对，
+	// 防止客户端绕过协议字段约束，仅提交一个可验签但语义不同的载荷。
 	if !bytes.Equal(tokenBytes, expectedTokenBytes) {
 		writeJSON(w, http.StatusUnauthorized, BaseResponse{OK: false, Error: "authentication failed"})
 		return
@@ -294,6 +298,7 @@ const tokenVersion = "AUTH-v1"
 
 func decodeRequest[T any](body io.Reader) (T, error) {
 	var req T
+	// 限制请求体大小，并拒绝未知字段与尾随 JSON，避免“看似成功但悄悄忽略输入”。
 	decoder := json.NewDecoder(io.LimitReader(body, 1<<20))
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&req); err != nil {
@@ -326,6 +331,8 @@ func randomBytes(size int) ([]byte, error) {
 }
 
 func fakeChallengeResponse() (ChallengeResponse, error) {
+	// 假 challenge 只用于隐藏用户名是否存在，不会写入 session store，
+	// 因此后续 verify 一定会失败。
 	sessionID, err := randomSessionID()
 	if err != nil {
 		return ChallengeResponse{}, err
@@ -347,6 +354,8 @@ func fakeChallengeResponse() (ChallengeResponse, error) {
 }
 
 func (s *Server) allowRequest(w http.ResponseWriter, r *http.Request, action string, subject string, limit int) bool {
+	// 对 challenge / verify 这类接口，把用户名并入 key，
+	// 既能限制单 IP 扫描，也不会让一个高频用户完全挤占同 IP 下其他用户名的配额。
 	key := action + "|" + clientIP(r.RemoteAddr) + "|" + subject
 	if s.limiter.Allow(key, limit, s.config.RateLimitWindow) {
 		return true

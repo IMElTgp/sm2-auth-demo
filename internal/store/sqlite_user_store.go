@@ -92,6 +92,8 @@ func (s *SQLiteUserStore) ensureInitialized() error {
 			return
 		}
 
+		// SQLite 在这个项目里只承担一个轻量用户表；单连接配置更简单，
+		// 也能减少写锁争用带来的 database is locked 问题。
 		db.SetMaxOpenConns(1)
 		db.SetMaxIdleConns(1)
 		db.SetConnMaxLifetime(0)

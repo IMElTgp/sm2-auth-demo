@@ -27,6 +27,7 @@ func (s *MemorySessionStore) Create(ctx context.Context, session SessionRecord) 
 
 func (s *MemorySessionStore) Get(ctx context.Context, sessionID string) (SessionRecord, error) {
 	_ = ctx
+	// 这里使用写锁而不是读锁，因为读到过期 session 时会顺手删除。
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -46,6 +47,7 @@ func (s *MemorySessionStore) Consume(ctx context.Context, sessionID string) erro
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
+	// Consume 是一次性挑战的关键：验签成功后立即删除，阻止重放。
 	session, ok := s.data[sessionID]
 	if !ok {
 		return ErrSessionNotFound

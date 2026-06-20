@@ -68,6 +68,7 @@ func Run() error {
 			client := NewAPIClient(server)
 			err := fn(client, username, password)
 			fyne.Do(func() {
+				// Fyne UI 组件必须回到主线程更新，避免后台 goroutine 直接操作控件。
 				defer setBusy(false)
 				if err != nil {
 					appendStatus(action + " failed: " + err.Error())
