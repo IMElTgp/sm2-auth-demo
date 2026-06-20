@@ -41,7 +41,7 @@ func (c *APIClient) Register(username string, password []byte) error {
 	}
 	defer wipeBytes(password)
 
-	// salt 由客户端随机生成并随注册一起上传，之后登录时服务器再原样返回。
+	// The client generates the salt during registration and the server returns the same salt on login.
 	salt := make([]byte, 16)
 	if _, err := rand.Read(salt); err != nil {
 		return fmt.Errorf("generate salt: %w", err)
@@ -101,7 +101,8 @@ func (c *APIClient) Login(username string, password []byte) error {
 		return fmt.Errorf("derive private key: %w", err)
 	}
 
-	// 登录时不发送密码本身，而是用同一组派生参数重建私钥，对 challenge token 做签名。
+	// Login never sends the password itself. It rebuilds the same private key locally
+	// and signs the challenge token instead.
 	token := protocol.AuthToken{
 		Version:   authTokenVersion,
 		Username:  username,

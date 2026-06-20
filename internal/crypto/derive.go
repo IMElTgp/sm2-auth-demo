@@ -31,7 +31,8 @@ func DerivePrivateKey(username string, password []byte, salt []byte) (*sm2.Priva
 	}
 
 	for counter := uint32(0); counter < maxKDFRetries; counter++ {
-		// SM2 私钥必须落在合法标量范围内；若当前摘要不合法，就通过计数器换一份输入重试。
+		// An SM2 private key must fall within the valid scalar range. If this digest does
+		// not, retry with a different counter-derived input.
 		material := buildKDFMaterial(username, password, salt, counter)
 		sum := sm3.Sum(material)
 
@@ -46,7 +47,8 @@ func DerivePrivateKey(username string, password []byte, salt []byte) (*sm2.Priva
 
 func buildKDFMaterial(username string, password []byte, salt []byte, counter uint32) []byte {
 	buf := make([]byte, 0, len(kdfDomainLabel)+4+len(username)+4+len(password)+4+len(salt)+4)
-	// 所有字段都带长度前缀，避免 ("ab","c") 与 ("a","bc") 这类拼接歧义。
+	// Prefix every field with its length to avoid concatenation ambiguities such as
+	// ("ab","c") versus ("a","bc").
 	buf = appendWithLength(buf, []byte(kdfDomainLabel))
 	buf = appendWithLength(buf, []byte(username))
 	buf = appendWithLength(buf, password)

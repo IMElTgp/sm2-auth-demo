@@ -41,7 +41,7 @@ func (l *fixedWindowLimiter) Allow(key string, limit int, window time.Duration) 
 			windowStart: now,
 			count:       1,
 		}
-		// 只在窗口切换时顺手清理，避免每次请求都做全表扫描。
+		// Only clean up on window rollover to avoid scanning the whole map on every request.
 		l.cleanup(now, window)
 		return true
 	}
@@ -56,7 +56,7 @@ func (l *fixedWindowLimiter) Allow(key string, limit int, window time.Duration) 
 }
 
 func (l *fixedWindowLimiter) cleanup(now time.Time, window time.Duration) {
-	// 小 map 直接保留，减少清理成本；到达一定规模后再回收过期窗口。
+	// Skip cleanup for small maps and only reclaim expired windows once the table grows.
 	if len(l.entries) < 1024 {
 		return
 	}

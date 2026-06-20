@@ -28,7 +28,7 @@ func (t AuthToken) CanonicalBytes() ([]byte, error) {
 	}
 
 	buf := bytes.NewBuffer(nil)
-	// 使用稳定的 length-prefixed 编码，避免依赖 JSON 键顺序或字符串分隔符约定。
+	// Use a stable length-prefixed encoding instead of relying on JSON key order or ad hoc delimiters.
 	if err := writeField(buf, []byte(t.Version)); err != nil {
 		return nil, err
 	}
@@ -45,7 +45,7 @@ func (t AuthToken) CanonicalBytes() ([]byte, error) {
 }
 
 func writeField(buf *bytes.Buffer, data []byte) error {
-	// 统一使用大端长度前缀，便于跨语言实现相同的 token 编码规则。
+	// Use a big-endian length prefix so other implementations can reproduce the same encoding.
 	if err := binary.Write(buf, binary.BigEndian, uint32(len(data))); err != nil {
 		return err
 	}
